@@ -1,0 +1,96 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<widget id="mendix.selectboxbydfsun.SelectBoxBydfsun" pluginWidget="true" needsEntityContext="true" offlineCapable="true"
+        supportedPlatform="Web"
+        xmlns="http://www.mendix.com/widget/1.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.mendix.com/widget/1.0/ ../node_modules/mendix/custom_widget.xsd">
+    <name>Select Box Bydfsun</name>
+    <description>Multi select dropdown with optional search and duplicate removal.</description>
+    <icon>
+        iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAABp1BMVEUAAABV//9mzP9LtP9Ms/9Jtv9NsvdJsfpLtPpJsfdJsfhJsvhJsvdKsvdJsPhKsPhJsfdJsPhJsfdIsfhJsfdIsPdJsfhJsfhJsPhJsPhIsfhIsPdJsPdKsPdKsfdNsvdOsvdPs/dQs/dRtPdStPdTtPdUtfdWtvdXtvdauPdcuPdeufdeufhguvhiu/hju/hkvPhmvfhnvfhpvvhrv/huwPhvwfhxwfhywvhzwvh4xfl5xfl6xfl8xvl9xvl9x/mByPmCyfmFyvmGyvmJzPmKzPmLzfmNzvqPzvqQz/qT0PqU0PqU0fqX0vqY0vqa0/qe1fqg1vqj1/uk1/un2fup2vut2/uv3Puw3Puw3fuz3vu13/u23/u34Pu44Pu64fu64fy84vy94vy+4/y/4/zD5fzE5fzG5vzH5vzI5/zK6PzL6PzR6/zT7P3U7P3V7f3W7f3Y7v3Z7v3c8P3e8f3f8f3g8f3i8v3l8/3l9P3n9P3r9v7t9/7u9/7v+P7w+P7x+f7y+f70+v71+v74/P75/P76/f77/f78/f78/v79/v7+/v7////6dMsRAAAAG3RSTlMAAwURGxwhMTNic3SEh4iVp7XBzejt7vH5/f6PsMNWAAABsklEQVR4AWIYfGAUjIJRMAqYuYREJKWJAqLCPGwY+jnFpEkBEryMqPr5pEkFgkwo9kuTDviR/S9GhgFSHAgDuKXJAQIIA4TIMkAcEY4i0mQBVrgBkuQZwA43QJo8wIFhQEhEOIBQOutHJozDOP5Crp4e1RhkJ0tKGJFd6oNEdtmJyEIzpaZl5nrRZgaHM/2Pf5/vwXXfyagXgG93bwSAlEolowLMm9w83gibhXH2gKKVdD67gTnWjwCk+VVjMQS4suSnnjMLRVFc9sAHvAX2A9fySaXNBMbEZVUWscaHIMRuqwBgD8hDEbnsRmfjUKJkAQZGCTlO/xWBwIADQLIZBlY441MvfoF1xlFS/4fy+bzXKh4dgNJE7L3eh3tmtuWa+AMcMIY3dgUvZQpGEYmMw2kD7HC+R29UqyoXLaBd0QZxzgXgikLLDSqJTKU5HOcS0MsbA9jPqtwCRvXm2eorBbNIJBw3KJ9O4Yl+AAXdnyaLt7PWN3jRWLvzmAVp94zO5+n41/onfo/UpExxZqI0O7NQr0DhIq9Io7hQpbRYp7hiobRqo6ByFcNWuY6CUTAKRgEAo8X0lBD3V30AAAAASUVORK5CYII=
+    </icon>
+    <properties>
+        <propertyGroup caption="Label">
+            <systemProperty key="Label" />
+        </propertyGroup>
+
+        <propertyGroup caption="Data source">
+            <property key="valueAttribute" type="attribute" required="true">
+                <caption>Value attribute</caption>
+                <description>The string attribute that stores selected values separated by commas.</description>
+                <attributeTypes>
+                    <attributeType name="String" />
+                </attributeTypes>
+            </property>
+
+            <property key="options" type="datasource" isList="true" required="true">
+                <caption>Options data source</caption>
+                <description>Use Database, Microflow, or Nanoflow to retrieve options.</description>
+            </property>
+
+            <property key="optionLabel" type="attribute" dataSource="options" required="true">
+                <caption>Option label</caption>
+                <description>The attribute displayed in the dropdown list.</description>
+                <attributeTypes>
+                    <attributeType name="String" />
+                </attributeTypes>
+            </property>
+
+            <property key="optionValue" type="attribute" dataSource="options" required="false">
+                <caption>Option value</caption>
+                <description>Optional value used for selection and de-duplication. Defaults to label when empty.</description>
+                <attributeTypes>
+                    <attributeType name="String" />
+                    <attributeType name="Enum" />
+                    <attributeType name="Integer" />
+                    <attributeType name="Decimal" />
+                    <attributeType name="Long" />
+                </attributeTypes>
+            </property>
+
+            <property key="placeholder" type="string" required="false">
+                <caption>Placeholder</caption>
+                <description>Text shown when no value is selected.</description>
+            </property>
+
+            <property key="searchPlaceholder" type="string" required="false">
+                <caption>Search placeholder</caption>
+                <description>Text shown in the search box.</description>
+            </property>
+        </propertyGroup>
+
+        <propertyGroup caption="Behavior">
+            <property key="delimiter" type="string" required="false" defaultValue=", ">
+                <caption>Delimiter</caption>
+                <description>Delimiter used to join multiple values (e.g. ", " or "|").</description>
+            </property>
+            <property key="dropdownPlacement" type="enumeration" required="true" defaultValue="auto">
+                <caption>Dropdown placement</caption>
+                <description>Control where the dropdown is shown.</description>
+                <enumerationValues>
+                    <enumerationValue key="auto">Auto</enumerationValue>
+                    <enumerationValue key="bottom">Bottom</enumerationValue>
+                    <enumerationValue key="top">Top</enumerationValue>
+                </enumerationValues>
+            </property>
+            <property key="enableMultiSelect" type="boolean" defaultValue="true">
+                <caption>Enable multi select</caption>
+                <description>Allow selecting multiple options.</description>
+            </property>
+            <property key="enableSearch" type="boolean" defaultValue="true">
+                <caption>Enable search</caption>
+                <description>Show a search box in the dropdown.</description>
+            </property>
+            <property key="enableDeduplicate" type="boolean" defaultValue="true">
+                <caption>Enable de-duplication</caption>
+                <description>Remove duplicate options based on the option value.</description>
+            </property>
+        </propertyGroup>
+
+        <propertyGroup caption="Common">
+            <systemProperty key="Name" />
+            <systemProperty key="TabIndex" />
+            <systemProperty key="Visibility" />
+            <systemProperty key="Editability" />
+        </propertyGroup>
+    </properties>
+</widget>
