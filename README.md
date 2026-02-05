@@ -2,9 +2,12 @@
 Multi-select dropdown widget for Mendix with datasource support, search, de-duplication, and custom delimiter.
 
 ## Screenshot
-Add a screenshot at `docs/screenshot.png` and it will render here:
 
+Interface display, supports search.
+支持搜索，单选多选，去重，多选支持自定义符合分隔，
 ![SelectBoxBydfsun](docs/screenshot.png)
+![SelectBoxBydfsun](docs/DataSource.png)
+![SelectBoxBydfsun](docs/Behavior.png)
 
 ## Features
 - Multi-select with comma-separated storage in a string attribute
