@@ -3,7 +3,7 @@
  * WARNING: All changes made to this file will be overwritten
  * @author Mendix Widgets Framework Team
  */
-import { EditableValue, ListValue, ListAttributeValue } from "mendix";
+import { DynamicValue, EditableValue, ListValue, ListAttributeValue } from "mendix";
 import { Big } from "big.js";
 
 export type DropdownPlacementEnum = "auto" | "bottom" | "top";
@@ -16,9 +16,12 @@ export interface SelectBoxBydfsunContainerProps {
     options: ListValue;
     optionLabel: ListAttributeValue<string>;
     optionValue?: ListAttributeValue<string | Big>;
-    placeholder: string;
+    placeholder?: DynamicValue<string>;
     searchPlaceholder: string;
     delimiter: string;
+    showClearButton: boolean;
+    showTagDisplay: boolean;
+    showTagRemove: boolean;
     dropdownPlacement: DropdownPlacementEnum;
     enableMultiSelect: boolean;
     enableSearch: boolean;
@@ -36,6 +39,9 @@ export interface SelectBoxBydfsunPreviewProps {
     placeholder: string;
     searchPlaceholder: string;
     delimiter: string;
+    showClearButton: boolean;
+    showTagDisplay: boolean;
+    showTagRemove: boolean;
     dropdownPlacement: DropdownPlacementEnum;
     enableMultiSelect: boolean;
     enableSearch: boolean;

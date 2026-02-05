@@ -27,13 +27,48 @@
     flex: 1;
     font-size: 14px;
     color: #223344;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    min-height: 24px;
 }
 
 .mx-selectbox__value.is-placeholder {
     color: #8898aa;
+}
+
+.mx-selectbox__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.mx-selectbox__tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: #f1f3f5;
+    color: #1f2d3d;
+    font-size: 13px;
+}
+
+.mx-selectbox__tag-label {
+    line-height: 1.1;
+}
+
+.mx-selectbox__tag-remove {
+    border: none;
+    background: transparent;
+    color: #667085;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+}
+
+.mx-selectbox__tag-remove:hover {
+    color: #1f2d3d;
 }
 
 .mx-selectbox__clear {

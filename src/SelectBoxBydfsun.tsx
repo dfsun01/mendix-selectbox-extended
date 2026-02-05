@@ -1,5 +1,5 @@
 ﻿import { ReactElement, createElement, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ValueStatus } from "mendix";
+import { DynamicValue, ValueStatus } from "mendix";
 
 import { SelectBoxBydfsunContainerProps } from "../typings/SelectBoxBydfsunProps";
 import "./ui/SelectBoxBydfsun.css";
@@ -24,6 +24,20 @@ function toDisplayString(value: unknown): string {
     return value.toString();
 }
 
+function resolveTextTemplate(value: DynamicValue<string> | string | undefined, fallback: string): string {
+    if (!value) {
+        return fallback;
+    }
+    if (typeof value === "string") {
+        return value.length > 0 ? value : fallback;
+    }
+    if (value.status === ValueStatus.Available) {
+        const resolved = value.value ?? "";
+        return resolved.length > 0 ? resolved : fallback;
+    }
+    return fallback;
+}
+
 export function SelectBoxBydfsun(props: SelectBoxBydfsunContainerProps): ReactElement {
     const {
         valueAttribute,
@@ -33,6 +47,9 @@ export function SelectBoxBydfsun(props: SelectBoxBydfsunContainerProps): ReactEl
         placeholder,
         searchPlaceholder,
         delimiter,
+        showClearButton,
+        showTagDisplay,
+        showTagRemove,
         dropdownPlacement,
         enableMultiSelect,
         enableSearch,
@@ -52,6 +69,7 @@ export function SelectBoxBydfsun(props: SelectBoxBydfsunContainerProps): ReactEl
     const selectedSet = useMemo(() => new Set(selectedValues), [selectedValues]);
 
     const isReadOnly = valueAttribute?.readOnly ?? false;
+    const placeholderText = resolveTextTemplate(placeholder, "Select...");
 
     const rawItems = useMemo(() => {
         if (!options || options.status !== ValueStatus.Available || !options.items) {
@@ -93,7 +111,19 @@ export function SelectBoxBydfsun(props: SelectBoxBydfsunContainerProps): ReactEl
         return mappedOptions.filter(option => option.label.toLowerCase().includes(normalizedQuery));
     }, [mappedOptions, enableSearch, query]);
 
-    const selectedText = selectedValues.join(resolvedDelimiter);
+    const valueToLabel = useMemo(() => {
+        const map = new Map<string, string>();
+        for (const option of mappedOptions) {
+            map.set(option.value, option.label);
+        }
+        return map;
+    }, [mappedOptions]);
+
+    const hasSelection = selectedValues.length > 0;
+    const selectedText = useMemo(() => {
+        const labels = selectedValues.map(value => valueToLabel.get(value) || value);
+        return labels.join(resolvedDelimiter);
+    }, [selectedValues, valueToLabel, resolvedDelimiter]);
 
     const setSelectedValues = useCallback(
         (nextValues: string[]) => {
@@ -184,10 +214,38 @@ export function SelectBoxBydfsun(props: SelectBoxBydfsunContainerProps): ReactEl
                     }
                 }}
             >
-                <span className={`mx-selectbox__value ${selectedText ? "" : "is-placeholder"}`}>
-                    {selectedText || placeholder || "Select..."}
-                </span>
-                {!!selectedText && !isReadOnly && (
+                <div className={`mx-selectbox__value ${hasSelection ? "" : "is-placeholder"}`}>
+                    {!hasSelection ? (
+                        <span>{placeholderText}</span>
+                    ) : showTagDisplay ? (
+                        <div className="mx-selectbox__tags">
+                            {selectedValues.map(value => {
+                                const label = valueToLabel.get(value) || value;
+                                return (
+                                    <span key={value} className="mx-selectbox__tag">
+                                        <span className="mx-selectbox__tag-label">{label}</span>
+                                        {showTagRemove && !isReadOnly && (
+                                            <button
+                                                type="button"
+                                                className="mx-selectbox__tag-remove"
+                                                onClick={event => {
+                                                    event.stopPropagation();
+                                                    handleSelect(value);
+                                                }}
+                                                aria-label={`Remove ${label}`}
+                                            >
+                                                ×
+                                            </button>
+                                        )}
+                                    </span>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <span>{selectedText}</span>
+                    )}
+                </div>
+                {hasSelection && showClearButton && !isReadOnly && (
                     <button className="mx-selectbox__clear" type="button" onClick={handleClear} aria-label="Clear" />
                 )}
                 <span className="mx-selectbox__arrow" />
