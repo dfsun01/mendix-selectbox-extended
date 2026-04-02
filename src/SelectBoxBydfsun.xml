@@ -75,6 +75,14 @@
                 <caption>Show tag remove</caption>
                 <description>Show remove (x) button on each tag.</description>
             </property>
+            <property key="renderDropdownInBody" type="boolean" defaultValue="true">
+                <caption>Render dropdown in body</caption>
+                <description>Render the dropdown panel in document.body to avoid being clipped by containers or modals.</description>
+            </property>
+            <property key="dropdownZIndex" type="integer" required="true" defaultValue="1060">
+                <caption>Dropdown z-index</caption>
+                <description>Z-index used for the dropdown panel.</description>
+            </property>
             <property key="dropdownPlacement" type="enumeration" required="true" defaultValue="auto">
                 <caption>Dropdown placement</caption>
                 <description>Control where the dropdown is shown.</description>
@@ -95,6 +103,13 @@
             <property key="enableDeduplicate" type="boolean" defaultValue="true">
                 <caption>Enable de-duplication</caption>
                 <description>Remove duplicate options based on the option value.</description>
+            </property>
+        </propertyGroup>
+
+        <propertyGroup caption="Events">
+            <property key="onChangeAction" type="action" required="false">
+                <caption>On change</caption>
+                <description>Action triggered when the selected value changes (select/unselect/clear).</description>
             </property>
         </propertyGroup>
 

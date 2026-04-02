@@ -123,6 +123,13 @@
     z-index: 20;
 }
 
+.mx-selectbox__panel.mx-selectbox__panel--portal {
+    left: auto;
+    right: auto;
+    top: auto;
+    bottom: auto;
+}
+
 .mx-selectbox.is-top .mx-selectbox__panel {
     top: auto;
     bottom: calc(100% + 4px);
@@ -216,4 +223,22 @@
 
 .mx-selectbox.is-disabled .mx-selectbox__clear {
     display: none;
+}
+
+/* Studio Pro structure mode preview (rendered as a plain input) */
+.mx-selectbox--structure {
+    width: 100%;
+}
+
+.mx-selectbox__control.mx-selectbox__control--structure {
+    min-height: 28px;
+    padding: 4px 10px;
+    border: 1px solid #c9d0d8;
+    border-radius: 4px;
+    background: #ffffff;
+}
+
+.mx-selectbox__value.mx-selectbox__value--structure {
+    font-size: 13px;
+    color: #2f6fed;
 }

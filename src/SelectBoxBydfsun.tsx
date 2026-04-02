@@ -1,44 +1,37 @@
-﻿import { ReactElement, createElement, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { DynamicValue, ValueStatus } from "mendix";
+// @ts-nocheck
+import { createElement, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { SelectBoxBydfsunContainerProps } from "../typings/SelectBoxBydfsunProps";
 import "./ui/SelectBoxBydfsun.css";
 
-type OptionItem = {
-    id: string;
-    label: string;
-    value: string;
-};
-
-function parseDelimited(value: string, delimiter: string): string[] {
+function parseDelimited(value, delimiter) {
     return value
         .split(delimiter)
         .map(item => item.trim())
         .filter(item => item.length > 0);
 }
 
-function toDisplayString(value: unknown): string {
+function toDisplayString(value) {
     if (value === null || value === undefined) {
         return "";
     }
     return value.toString();
 }
 
-function resolveTextTemplate(value: DynamicValue<string> | string | undefined, fallback: string): string {
+function resolveTextTemplate(value, fallback) {
     if (!value) {
         return fallback;
     }
     if (typeof value === "string") {
         return value.length > 0 ? value : fallback;
     }
-    if (value.status === ValueStatus.Available) {
+    if (value.status === "available") {
         const resolved = value.value ?? "";
         return resolved.length > 0 ? resolved : fallback;
     }
     return fallback;
 }
 
-export function SelectBoxBydfsun(props: SelectBoxBydfsunContainerProps): ReactElement {
+export function SelectBoxBydfsun(props) {
     const {
         valueAttribute,
         options,
@@ -50,15 +43,21 @@ export function SelectBoxBydfsun(props: SelectBoxBydfsunContainerProps): ReactEl
         showClearButton,
         showTagDisplay,
         showTagRemove,
+        renderDropdownInBody,
+        dropdownZIndex,
         dropdownPlacement,
         enableMultiSelect,
         enableSearch,
-        enableDeduplicate
+        enableDeduplicate,
+        onChangeAction
     } = props;
 
-    const wrapperRef = useRef<HTMLDivElement>(null);
+    const wrapperRef = useRef(null);
+    const controlRef = useRef(null);
+    const panelRef = useRef(null);
     const [isOpen, setIsOpen] = useState(false);
     const [query, setQuery] = useState("");
+    const [overlayStyle, setOverlayStyle] = useState(undefined);
 
     const currentValue = toDisplayString(valueAttribute?.value ?? "");
     const resolvedDelimiter = delimiter && delimiter.length > 0 ? delimiter : ", ";
@@ -70,9 +69,10 @@ export function SelectBoxBydfsun(props: SelectBoxBydfsunContainerProps): ReactEl
 
     const isReadOnly = valueAttribute?.readOnly ?? false;
     const placeholderText = resolveTextTemplate(placeholder, "Select...");
+    const zIndexValue = typeof dropdownZIndex === "number" ? dropdownZIndex : 1060;
 
     const rawItems = useMemo(() => {
-        if (!options || options.status !== ValueStatus.Available || !options.items) {
+        if (!options || options.status !== "available" || !options.items) {
             return [];
         }
         return options.items;
@@ -80,10 +80,10 @@ export function SelectBoxBydfsun(props: SelectBoxBydfsunContainerProps): ReactEl
 
     const mappedOptions = useMemo(() => {
         if (!optionLabel) {
-            return [] as OptionItem[];
+            return [];
         }
-        const seen = new Set<string>();
-        const result: OptionItem[] = [];
+        const seen = new Set();
+        const result = [];
         for (const item of rawItems) {
             const labelEditable = optionLabel.get(item);
             const label = toDisplayString(labelEditable?.displayValue ?? labelEditable?.value ?? "").trim();
@@ -112,7 +112,7 @@ export function SelectBoxBydfsun(props: SelectBoxBydfsunContainerProps): ReactEl
     }, [mappedOptions, enableSearch, query]);
 
     const valueToLabel = useMemo(() => {
-        const map = new Map<string, string>();
+        const map = new Map();
         for (const option of mappedOptions) {
             map.set(option.value, option.label);
         }
@@ -125,15 +125,25 @@ export function SelectBoxBydfsun(props: SelectBoxBydfsunContainerProps): ReactEl
         return labels.join(resolvedDelimiter);
     }, [selectedValues, valueToLabel, resolvedDelimiter]);
 
-    const setSelectedValues = useCallback(
-        (nextValues: string[]) => {
-            const normalized = enableDeduplicate ? Array.from(new Set(nextValues)) : nextValues;
-            const nextValue = normalized.join(resolvedDelimiter);
+    const applyValue = useCallback(
+        nextValue => {
             if (valueAttribute && !valueAttribute.readOnly) {
                 valueAttribute.setValue(nextValue);
             }
+            if (onChangeAction && onChangeAction.canExecute) {
+                onChangeAction.execute();
+            }
         },
-        [valueAttribute, enableDeduplicate]
+        [valueAttribute, onChangeAction]
+    );
+
+    const setSelectedValues = useCallback(
+        nextValues => {
+            const normalized = enableDeduplicate ? Array.from(new Set(nextValues)) : nextValues;
+            const nextValue = normalized.join(resolvedDelimiter);
+            applyValue(nextValue);
+        },
+        [applyValue, enableDeduplicate, resolvedDelimiter]
     );
 
     const handleToggle = useCallback(() => {
@@ -144,17 +154,15 @@ export function SelectBoxBydfsun(props: SelectBoxBydfsunContainerProps): ReactEl
     }, [isReadOnly]);
 
     const handleClear = useCallback(
-        (event: React.MouseEvent<HTMLButtonElement>) => {
+        event => {
             event.stopPropagation();
-            if (valueAttribute && !valueAttribute.readOnly) {
-                valueAttribute.setValue("");
-            }
+            applyValue("");
         },
-        [valueAttribute]
+        [applyValue]
     );
 
     const handleSelect = useCallback(
-        (value: string) => {
+        value => {
             if (isReadOnly) {
                 return;
             }
@@ -178,113 +186,197 @@ export function SelectBoxBydfsun(props: SelectBoxBydfsunContainerProps): ReactEl
     }, [isOpen]);
 
     useEffect(() => {
-        function handleOutside(event: MouseEvent): void {
-            if (!wrapperRef.current) {
+        if (!isOpen || !renderDropdownInBody) {
+            setOverlayStyle(undefined);
+            return;
+        }
+
+        const estimatePanelHeight = 280;
+
+        function computeStyle() {
+            const controlEl = controlRef.current;
+            if (!controlEl) {
                 return;
             }
-            if (!wrapperRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
+            const rect = controlEl.getBoundingClientRect();
+            const spaceBelow = window.innerHeight - rect.bottom;
+            const spaceAbove = rect.top;
+            const preferred =
+                dropdownPlacement === "top" || dropdownPlacement === "bottom"
+                    ? dropdownPlacement
+                    : spaceBelow < estimatePanelHeight && spaceAbove > spaceBelow
+                      ? "top"
+                      : "bottom";
+
+            const base = {
+                position: "fixed",
+                left: Math.max(0, rect.left),
+                right: "auto",
+                width: Math.max(0, rect.width),
+                zIndex: zIndexValue
+            };
+
+            if (preferred === "top") {
+                setOverlayStyle({ ...base, bottom: Math.max(0, window.innerHeight - rect.top + 4) });
+            } else {
+                setOverlayStyle({ ...base, top: Math.max(0, rect.bottom + 4) });
             }
+        }
+
+        computeStyle();
+        window.addEventListener("resize", computeStyle);
+        window.addEventListener("scroll", computeStyle, true);
+        return () => {
+            window.removeEventListener("resize", computeStyle);
+            window.removeEventListener("scroll", computeStyle, true);
+        };
+    }, [isOpen, renderDropdownInBody, dropdownPlacement, zIndexValue]);
+
+    useEffect(() => {
+        function handleOutside(event) {
+            const target = event.target;
+            if (!target) {
+                return;
+            }
+            if (wrapperRef.current && wrapperRef.current.contains(target)) {
+                return;
+            }
+            if (panelRef.current && panelRef.current.contains(target)) {
+                return;
+            }
+            setIsOpen(false);
         }
         document.addEventListener("mousedown", handleOutside);
         return () => document.removeEventListener("mousedown", handleOutside);
     }, []);
 
-    const isLoading = options?.status === ValueStatus.Loading;
+    const isLoading = options?.status === "loading";
 
-    return (
-        <div
-            ref={wrapperRef}
-            className={`mx-selectbox ${enableMultiSelect ? "is-multi" : "is-single"} ${isReadOnly ? "is-disabled" : ""} ${
+    const valueNode = !hasSelection
+        ? createElement("span", null, placeholderText)
+        : showTagDisplay
+          ? createElement(
+                "div",
+                { className: "mx-selectbox__tags" },
+                selectedValues.map(value => {
+                    const label = valueToLabel.get(value) || value;
+                    const removeButton =
+                        showTagRemove && !isReadOnly
+                            ? createElement(
+                                  "button",
+                                  {
+                                      type: "button",
+                                      className: "mx-selectbox__tag-remove",
+                                      onClick: event => {
+                                          event.stopPropagation();
+                                          handleSelect(value);
+                                      },
+                                      "aria-label": `Remove ${label}`
+                                  },
+                                  "×"
+                              )
+                            : null;
+                    return createElement(
+                        "span",
+                        { key: value, className: "mx-selectbox__tag" },
+                        createElement("span", { className: "mx-selectbox__tag-label" }, label),
+                        removeButton
+                    );
+                })
+            )
+          : createElement("span", null, selectedText);
+
+    const clearButton =
+        hasSelection && showClearButton && !isReadOnly
+            ? createElement("button", {
+                  className: "mx-selectbox__clear",
+                  type: "button",
+                  onClick: handleClear,
+                  "aria-label": "Clear"
+              })
+            : null;
+
+    const controlNode = createElement(
+        "div",
+        {
+            ref: controlRef,
+            className: `mx-selectbox__control ${isOpen ? "is-open" : ""}`,
+            onClick: handleToggle,
+            role: "button",
+            tabIndex: props.tabIndex,
+            onKeyDown: event => {
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    handleToggle();
+                }
+                if (event.key === "Escape") {
+                    setIsOpen(false);
+                }
+            }
+        },
+        createElement("div", { className: `mx-selectbox__value ${hasSelection ? "" : "is-placeholder"}` }, valueNode),
+        clearButton,
+        createElement("span", { className: "mx-selectbox__arrow" })
+    );
+
+    const searchNode = enableSearch
+        ? createElement("input", {
+              className: "mx-selectbox__search",
+              type: "text",
+              value: query,
+              placeholder: searchPlaceholder || "Search",
+              onChange: event => setQuery(event.currentTarget.value),
+              autoFocus: true
+          })
+        : null;
+
+    const optionNodes = [];
+    if (isLoading) {
+        optionNodes.push(createElement("div", { key: "loading", className: "mx-selectbox__empty" }, "Loading..."));
+    } else if (filteredOptions.length === 0) {
+        optionNodes.push(createElement("div", { key: "empty", className: "mx-selectbox__empty" }, "No results"));
+    } else {
+        for (const option of filteredOptions) {
+            const isSelected = selectedSet.has(option.value);
+            optionNodes.push(
+                createElement(
+                    "button",
+                    {
+                        key: option.id,
+                        type: "button",
+                        className: "mx-selectbox__option",
+                        onClick: () => handleSelect(option.value)
+                    },
+                    createElement("span", { className: `mx-selectbox__check ${isSelected ? "is-checked" : ""}` }),
+                    createElement("span", { className: "mx-selectbox__label" }, option.label)
+                )
+            );
+        }
+    }
+
+    const panelNode = isOpen
+        ? createElement(
+              "div",
+              {
+                  ref: panelRef,
+                  className: `mx-selectbox__panel ${renderDropdownInBody ? "mx-selectbox__panel--portal" : ""}`,
+                  style: renderDropdownInBody ? overlayStyle : { zIndex: zIndexValue }
+              },
+              searchNode,
+              createElement("div", { className: "mx-selectbox__options" }, optionNodes)
+          )
+        : null;
+
+    return createElement(
+        "div",
+        {
+            ref: wrapperRef,
+            id: props.id,
+            className: `mx-selectbox ${enableMultiSelect ? "is-multi" : "is-single"} ${isReadOnly ? "is-disabled" : ""} ${
                 dropdownPlacement ? `is-${dropdownPlacement}` : "is-auto"
-            }`}
-        >
-            <div
-                className={`mx-selectbox__control ${isOpen ? "is-open" : ""}`}
-                onClick={handleToggle}
-                role="button"
-                tabIndex={props.tabIndex}
-                onKeyDown={event => {
-                    if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        handleToggle();
-                    }
-                    if (event.key === "Escape") {
-                        setIsOpen(false);
-                    }
-                }}
-            >
-                <div className={`mx-selectbox__value ${hasSelection ? "" : "is-placeholder"}`}>
-                    {!hasSelection ? (
-                        <span>{placeholderText}</span>
-                    ) : showTagDisplay ? (
-                        <div className="mx-selectbox__tags">
-                            {selectedValues.map(value => {
-                                const label = valueToLabel.get(value) || value;
-                                return (
-                                    <span key={value} className="mx-selectbox__tag">
-                                        <span className="mx-selectbox__tag-label">{label}</span>
-                                        {showTagRemove && !isReadOnly && (
-                                            <button
-                                                type="button"
-                                                className="mx-selectbox__tag-remove"
-                                                onClick={event => {
-                                                    event.stopPropagation();
-                                                    handleSelect(value);
-                                                }}
-                                                aria-label={`Remove ${label}`}
-                                            >
-                                                ×
-                                            </button>
-                                        )}
-                                    </span>
-                                );
-                            })}
-                        </div>
-                    ) : (
-                        <span>{selectedText}</span>
-                    )}
-                </div>
-                {hasSelection && showClearButton && !isReadOnly && (
-                    <button className="mx-selectbox__clear" type="button" onClick={handleClear} aria-label="Clear" />
-                )}
-                <span className="mx-selectbox__arrow" />
-            </div>
-
-            {isOpen && (
-                <div className="mx-selectbox__panel">
-                    {enableSearch && (
-                        <input
-                            className="mx-selectbox__search"
-                            type="text"
-                            value={query}
-                            placeholder={searchPlaceholder || "Search"}
-                            onChange={event => setQuery(event.currentTarget.value)}
-                            autoFocus
-                        />
-                    )}
-                    <div className="mx-selectbox__options">
-                        {isLoading && <div className="mx-selectbox__empty">Loading...</div>}
-                        {!isLoading && filteredOptions.length === 0 && (
-                            <div className="mx-selectbox__empty">No results</div>
-                        )}
-                        {filteredOptions.map(option => {
-                            const isSelected = selectedSet.has(option.value);
-                            return (
-                                <button
-                                    key={option.id}
-                                    type="button"
-                                    className="mx-selectbox__option"
-                                    onClick={() => handleSelect(option.value)}
-                                >
-                                    <span className={`mx-selectbox__check ${isSelected ? "is-checked" : ""}`} />
-                                    <span className="mx-selectbox__label">{option.label}</span>
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
-        </div>
+            }`
+        },
+        controlNode,
+        panelNode
     );
 }
