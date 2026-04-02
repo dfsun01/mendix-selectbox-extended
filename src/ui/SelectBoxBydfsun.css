@@ -216,7 +216,7 @@
 }
 
 .mx-selectbox.is-disabled .mx-selectbox__control {
-    background: #f5f7f9;
+    background: #f8f8f8;
     color: #a0acb8;
     cursor: not-allowed;
 }
