@@ -125,25 +125,25 @@ export function SelectBoxBydfsun(props) {
         return labels.join(resolvedDelimiter);
     }, [selectedValues, valueToLabel, resolvedDelimiter]);
 
-    const applyValue = useCallback(
-        nextValue => {
+    const applyChange = useCallback(
+        nextValues => {
+            const nextValueString = nextValues.join(resolvedDelimiter);
             if (valueAttribute && !valueAttribute.readOnly) {
-                valueAttribute.setValue(nextValue);
+                valueAttribute.setValue(nextValueString);
             }
             if (onChangeAction && onChangeAction.canExecute) {
                 onChangeAction.execute();
             }
         },
-        [valueAttribute, onChangeAction]
+        [valueAttribute, onChangeAction, resolvedDelimiter]
     );
 
     const setSelectedValues = useCallback(
         nextValues => {
             const normalized = enableDeduplicate ? Array.from(new Set(nextValues)) : nextValues;
-            const nextValue = normalized.join(resolvedDelimiter);
-            applyValue(nextValue);
+            applyChange(normalized);
         },
-        [applyValue, enableDeduplicate, resolvedDelimiter]
+        [applyChange, enableDeduplicate]
     );
 
     const handleToggle = useCallback(() => {
@@ -156,9 +156,9 @@ export function SelectBoxBydfsun(props) {
     const handleClear = useCallback(
         event => {
             event.stopPropagation();
-            applyValue("");
+            applyChange([]);
         },
-        [applyValue]
+        [applyChange]
     );
 
     const handleSelect = useCallback(
